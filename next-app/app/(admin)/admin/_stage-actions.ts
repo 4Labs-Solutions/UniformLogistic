@@ -5,7 +5,7 @@ import { createClient, createServiceClient } from '@/utils/supabase/server';
 import {
     updateOrderStatus,
     addExtraOrderItem,
-    OrderStatus,
+    type OrderStatus,
     type ExtraItemInput
 } from '@/lib/services/orders';
 import {
@@ -30,6 +30,7 @@ import {
 import { fetchStationUser } from '@/lib/services/station-users';
 import { isStationAssignedToOrder } from '@/lib/services/station-assignments';
 import { isAdminEmail } from '@/lib/admin-acting-company';
+import { requireAdmin } from '@/lib/admin-auth';
 import {
     createMissingReport,
     fetchAllReports,
@@ -426,12 +427,8 @@ export async function fetchMissingReportsAction(): Promise<MissingInsumoReport[]
 export async function markReportPurchasedAction(
     reportId: string
 ): Promise<{ error?: string }> {
-    const supabase = await createClient();
-    const {
-        data: { user }
-    } = await supabase.auth.getUser();
-    if (!user) return { error: 'No autenticado.' };
     try {
+        const { supabase, user } = await requireAdmin();
         await markReportPurchased(supabase, reportId, user.id);
         for (const p of STAGE_PATHS) revalidatePath(p);
         return {};
